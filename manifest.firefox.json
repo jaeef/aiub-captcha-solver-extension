@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "AIUB Captcha Auto-Solver",
+  "version": "0.1.0",
+  "description": "Automatically solves the AIUB portal math captcha and fills the answer. You log in yourself.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "aiub-captcha-solver@jaeef.github",
+      "strict_min_version": "121.0"
+    }
+  },
+  "permissions": ["storage"],
+  "host_permissions": ["https://portal.aiub.edu/*"],
+  "icons": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "AIUB Portal Helper",
+    "default_icon": { "16": "icons/16.png", "48": "icons/48.png", "128": "icons/128.png" }
+  },
+  "background": {
+    "scripts": [
+      "vendor/ort.min.js",
+      "solver/decode.js",
+      "solver/preprocess.js",
+      "solver/solver.js",
+      "background.firefox.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://portal.aiub.edu/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
+}
