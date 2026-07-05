@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>solver</title>
+  </head>
+  <body>
+    <!-- ort global first, then our modules. (OpenCV.js removed — preprocess is pure JS;
+         its embind build needed 'unsafe-eval', which MV3 extension CSP forbids.) -->
+    <script src="vendor/ort.min.js"></script>
+    <script src="solver/decode.js"></script>
+    <script src="solver/preprocess.js"></script>
+    <script src="solver/solver.js"></script>
+    <script src="offscreen.js"></script>
+  </body>
+</html>
