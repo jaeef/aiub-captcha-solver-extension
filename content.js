@@ -18,12 +18,18 @@ const SEL = {
   // falls back to a heuristic scan near the captcha.
   captchaRefresh: "",
 };
-const MIN_CONF = 0.5;         // solver gate: below this, answer is treated as unknown
-const RETRY_CONF = 0.90;      // below this, reroll for an easier captcha instead of filling (raised
-                              // from 0.85 to cut confidently-wrong fills; relies on a working reroll)
-const AUTOSUBMIT_CONF = 0.90; // gate for auto-submit: a wrong submit burns a login attempt
+// Gates calibrated on 1025 labeled captchas against the retrained models/captcha.onnx
+// (tools/calibrate.py). That model is 99.41% accurate ungated but reports a LOWER
+// softmax scale than the old one, so the old 0.90 gates rerolled ~96% of captchas.
+// Curve: precision 100% at conf>=0.50, >=99.5% at conf>=0.20. Re-run calibrate.py if
+// the model is retrained again.
+const MIN_CONF = 0.20;        // hard floor: below this the answer is discarded (99.8% coverage).
+const RETRY_CONF = 0.40;      // below this, reroll instead of filling (98% filled directly, 99.6% correct).
+const AUTOSUBMIT_CONF = 0.50; // strictest — a wrong submit burns a login attempt (100% precision, 0 wrong/963).
 const MAX_REFRESH = 5;        // cap rerolls per episode (so 5 captchas tried max)
-const MAX_SUBMITS = 8;        // max auto-submits per rolling window (lockout guard, survives reloads)
+const MAX_SUBMITS = 5;        // max auto-submits per rolling window (lockout guard, survives reloads).
+                              // Kept below the portal's failed-login lockout threshold; lower this
+                              // further if AIUB locks accounts after fewer than 5 bad attempts.
 const SUBMIT_WINDOW_MS = 10 * 60 * 1000; // rolling window for the auto-submit cap
 const MAX_TRANSIENT = 5;      // retries for transient solver failures (timeout/not-ready) per image
 const DEBUG = false;          // set true to log solve details to the console
@@ -32,18 +38,83 @@ const log = (...a) => DEBUG && console.log("[captcha]", ...a);
 const $ = (s) => document.querySelector(s);
 
 // On-page badge so you can see what's happening without the console.
+// Clean modern pill, anchored beside the captcha box (flips left when it would
+// overflow the right edge). States: neutral | ok | warn | green | err. The
+// "spin" state pulses the status dot (used while solving). Terminal states
+// auto-hide after a few seconds; active (spinning) states stay until they end.
+const BADGE_STYLE_ID = "cs-badge-style";
+const BADGE_HIDE_MS = 4000;
 let badgeEl = null;
-function badge(text, color) {
+let badgeHideTimer = null;
+
+function injectBadgeStyle() {
+  if (document.getElementById(BADGE_STYLE_ID)) return;
+  const st = document.createElement("style");
+  st.id = BADGE_STYLE_ID;
+  st.textContent =
+    ".cs-badge{position:fixed;z-index:2147483647;pointer-events:none;max-width:280px;" +
+    "display:flex;align-items:center;gap:7px;padding:8px 14px 8px 12px;" +
+    "font:600 13px system-ui,sans-serif;color:#fff;letter-spacing:.2px;border-radius:999px;" +
+    "background:linear-gradient(135deg,#3a3d45,#26282f);border:1px solid rgba(255,255,255,.14);" +
+    "box-shadow:0 4px 14px rgba(0,0,0,.35),0 1px 0 rgba(255,255,255,.08) inset;" +
+    "transition:opacity .3s ease,transform .2s ease;}" +
+    ".cs-badge::before{content:'';width:8px;height:8px;border-radius:50%;background:#6b6c74;" +
+    "box-shadow:0 0 6px currentColor;flex:none;}" +
+    ".cs-badge.ok{background:linear-gradient(135deg,#1fae3a,#17a02f);border-color:rgba(255,255,255,.25);" +
+    "box-shadow:0 4px 14px rgba(24,167,24,.4),0 1px 0 rgba(255,255,255,.18) inset;}" +
+    ".cs-badge.ok::before{background:#d9ffb0;}" +
+    ".cs-badge.green{background:linear-gradient(135deg,#33b548,#2a8f2a);border-color:rgba(255,255,255,.24);" +
+    "box-shadow:0 4px 14px rgba(42,143,42,.4),0 1px 0 rgba(255,255,255,.18) inset;}" +
+    ".cs-badge.green::before{background:#d9ffb0;}" +
+    ".cs-badge.warn{background:linear-gradient(135deg,#e09a12,#c47f00);border-color:rgba(255,255,255,.22);" +
+    "box-shadow:0 4px 14px rgba(196,127,0,.4),0 1px 0 rgba(255,255,255,.16) inset;}" +
+    ".cs-badge.warn::before{background:#ffe9b0;}" +
+    ".cs-badge.err{background:linear-gradient(135deg,#c42e2e,#a00);border-color:rgba(255,255,255,.2);" +
+    "box-shadow:0 4px 14px rgba(170,0,0,.4),0 1px 0 rgba(255,255,255,.14) inset;}" +
+    ".cs-badge.err::before{background:#ffc9c9;}" +
+    ".cs-badge.spin::before{animation:cs-badge-pulse 1s ease-in-out infinite;}" +
+    "@keyframes cs-badge-pulse{0%,100%{opacity:.35;transform:scale(.85);}50%{opacity:1;transform:scale(1.15);}}" +
+    ".cs-badge.hide{opacity:0;}" +
+    "@media (prefers-reduced-motion:reduce){.cs-badge{transition:none;}" +
+    ".cs-badge.spin::before{animation:none;}}";
+  document.head.appendChild(st);
+}
+
+function positionBadge() {
+  const anchor = $(SEL.captchaInput);
+  if (!anchor) { // fallback: top-right corner
+    badgeEl.style.left = "auto";
+    badgeEl.style.right = "8px";
+    badgeEl.style.top = "8px";
+    return;
+  }
+  const r = anchor.getBoundingClientRect();
+  const pad = 15;
+  badgeEl.style.right = "auto";
+  let left = r.right + pad;
+  if (left + badgeEl.offsetWidth > window.innerWidth - pad) left = r.left - badgeEl.offsetWidth - pad;
+  badgeEl.style.left = left + "px";
+  badgeEl.style.top = r.top + "px";
+}
+
+function badge(text, state) {
   if (!badgeEl) {
+    injectBadgeStyle();
     badgeEl = document.createElement("div");
-    badgeEl.style.cssText =
-      "position:fixed;z-index:2147483647;top:8px;right:8px;padding:6px 10px;" +
-      "font:12px system-ui,sans-serif;border-radius:6px;color:#fff;" +
-      "box-shadow:0 1px 4px rgba(0,0,0,.3);pointer-events:none;max-width:260px";
+    badgeEl.className = "cs-badge";
     document.documentElement.appendChild(badgeEl);
+    window.addEventListener("resize", positionBadge);
+    window.addEventListener("scroll", positionBadge, true);
   }
   badgeEl.textContent = text;
-  badgeEl.style.background = color || "#555";
+  badgeEl.className = "cs-badge " + (state || "neutral");
+  badgeEl.classList.toggle("spin", state === "spin");
+  badgeEl.classList.remove("hide");
+  positionBadge();
+  clearTimeout(badgeHideTimer);
+  if (state !== "spin") { // active solves stay visible until they finish
+    badgeHideTimer = setTimeout(() => badgeEl.classList.add("hide"), BADGE_HIDE_MS);
+  }
 }
 
 function isVisible(el) {
@@ -140,18 +211,17 @@ async function getSettings() {
   return { enabled: v.enabled !== false, autoSubmit: v.autoSubmit === true };
 }
 
-// True once the portal shows a logged-in page. Used to reset the auto-submit throttle so a
-// fresh, legit session isn't blocked by a previous failed streak.
+// True ONLY on a POSITIVE logged-in signal. This gates the permanent teardown of the
+// poll+observer (trySolve), so it must never fire before the login form has rendered — a
+// false positive here would silently disable the solver for the whole pageload. The old
+// "login form absent + not a login URL" inference was removed for exactly that reason: at
+// a root URL (portal.aiub.edu/) a slow-rendering form read as "logged in" and killed the
+// watcher before the captcha ever appeared.
 function loggedIn() {
   if (document.querySelector(".portal-body")) return true;
   if (/\/Student/i.test(location.href)) return true;
   // A logout affordance means we're definitely authenticated.
   if (document.querySelector("a[href*='logout' i], #logout, .logout, [href*='Logout']")) return true;
-  // Login form gone AND not on a login URL -> treat as logged in. Used only to clear the
-  // auto-submit throttle; if the form is gone there's no captcha to submit, so a false
-  // positive here is harmless.
-  const onLoginForm = !!(document.querySelector(SEL.usernameInput) && document.querySelector(SEL.passwordInput));
-  if (!onLoginForm && !/login|signin|logon/i.test(location.href)) return true;
   return false;
 }
 
@@ -183,14 +253,14 @@ function credsPresent() {
 // the form and lock the account.
 async function maybeAutoSubmit(autoSubmit, conf) {
   if (!autoSubmit) return;
-  if (conf < AUTOSUBMIT_CONF) { badge("filled — auto-submit skipped (not confident enough)", "#c47f00"); return; }
-  if (!credsPresent()) { badge("auto-submit: type ID + password first", "#c47f00"); return; }
+  if (conf < AUTOSUBMIT_CONF) { badge("⚠ auto-submit skipped (low confidence)", "warn"); return; }
+  if (!credsPresent()) { badge("⚠ type ID + password first", "warn"); return; }
   const btn = $(SEL.submitButton);
   if (!btn) return log("auto-submit: no submit button found");
   const gate = await recordSubmitAllowed();
-  if (!gate.allowed) { badge("auto-submit paused (too many tries — check ID/password)", "#a00"); return; }
+  if (!gate.allowed) { badge("✕ auto-submit paused (too many tries — check ID/password)", "err"); return; }
   log("auto-submit", gate.count, "/", MAX_SUBMITS);
-  badge("submitting… (" + gate.count + "/" + MAX_SUBMITS + ")", "#2a8f2a");
+  badge("✓ submitting… (" + gate.count + "/" + MAX_SUBMITS + ")", "green");
   // Small delay so the fill's input/change events settle before the form submits.
   setTimeout(() => btn.click(), 300);
 }
@@ -221,10 +291,10 @@ async function trySolve() {
     if (!st.enabled) return log("auto-solver toggled OFF");
 
     log("solving captcha…", src);
-    badge("solving…", "#c47f00");
+    badge("⟳ solving…", "spin");
 
     const pngB64 = captchaPngB64(img);
-    if (!pngB64) { log("could not read captcha pixels (tainted?)"); badge("cannot read image", "#a00"); return; }
+    if (!pngB64) { log("could not read captcha pixels (tainted?)"); badge("✕ cannot read image", "err"); return; }
     const res = await chrome.runtime.sendMessage({ type: "SOLVE", pngB64, minConf: MIN_CONF });
     log("solver result:", res);
 
@@ -237,9 +307,12 @@ async function trySolve() {
       if (transientTries >= MAX_TRANSIENT) {
         lastHandledSrc = src; // hard failure -> stop retrying this image
         reportStatus({ ok: false, reason });
-        badge("skipped: " + reason, "#a00");
+        badge("✕ skipped: " + reason, "err");
       } else {
-        badge("retrying… (" + reason + ")", "#c47f00");
+        // Surface the retry in the popup too, so it doesn't sit on a stale prior result
+        // during a slow cold-load streak.
+        reportStatus({ ok: false, reason: "retrying… (" + reason + ")" });
+        badge("⟳ retrying… (" + reason + ")", "warn");
       }
       return;
     }
@@ -266,14 +339,14 @@ async function trySolve() {
       // Confident -> fill and end the episode.
       refreshCount = 0;
       fill();
-      badge("filled: " + text + " = " + ans, "#18a718ff");
+      badge("✓ " + text + " = " + ans, "ok");
       await maybeAutoSubmit(st.autoSubmit, conf); // opt-in; no-op unless toggle ON + creds typed
     } else if (refreshCount < MAX_REFRESH && clickRefresh()) {
       // Shaky -> reroll to an easier captcha. The new image retriggers trySolve.
       refreshCount++;
       const why = ans == null ? (r ? r.info : "no answer") : "low-conf " + conf.toFixed(2);
       log("reroll", refreshCount, "/", MAX_REFRESH, "-", why);
-      badge("reroll " + refreshCount + "/" + MAX_REFRESH + " (" + why + ")", "#c47f00");
+      badge("⟳ " + why + " → new captcha (" + refreshCount + "/" + MAX_REFRESH + ")", "warn");
       // The refresh click swaps #CaptchaImage while we're still busy; nudge a re-solve
       // shortly after busy clears so we don't wait on the 1s poll for each reroll.
       setTimeout(trySolve, 400);
@@ -283,17 +356,17 @@ async function trySolve() {
       if (ans != null) {
         fill();
         input.style.outline = "2px solid #c47f00";
-        badge("filled (verify): " + text + " = " + ans, "#c47f00");
+        badge("⚠ " + text + " = " + ans + " → verify", "warn");
       } else {
         const reason = (r && r.info) || "no answer";
         reportStatus({ ok: false, reason });
-        badge("skipped: " + reason, "#a00");
+        badge("✕ skipped: " + reason, "err");
       }
     }
   } catch (e) {
     const m = String(e && e.message ? e.message : e);
     reportStatus({ ok: false, reason: m });
-    badge("error: " + m, "#a00");
+    badge("✕ error: " + m, "err");
   } finally {
     busy = false;
   }

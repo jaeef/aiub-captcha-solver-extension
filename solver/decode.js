@@ -42,9 +42,15 @@
   }
 
   // logits: array of N_SLOTS Float32Array(NUM_CLASSES). Returns {slots, minConf}.
+  // minConf is the min per-slot confidence over MEANINGFUL (non-BLANK) slots only — a
+  // single-digit operand pads its tens slot with BLANK, whose class is structurally
+  // uncertain (~0.5), so a min over all 5 slots would unfairly reject a captcha whose every
+  // real glyph reads high. Mirrors predict_equation()'s eff_c in captcha_seqcnn.py.
   function argmaxSoftmax(logits) {
     var slots = [];
-    var minConf = 1;
+    var minConf = 1;          // min over non-BLANK slots
+    var minAll = 1;           // fallback if a (degenerate) read is all-BLANK
+    var sawMeaningful = false;
     for (var s = 0; s < logits.length; s++) {
       var row = logits[s];
       // softmax (numerically stable) + argmax in one pass.
@@ -59,9 +65,13 @@
       // so the gate rejects instead of passing garbage as "confident".
       if (!isFinite(conf)) conf = 0;
       slots.push(arg);
-      if (conf < minConf) minConf = conf;
+      if (conf < minAll) minAll = conf;
+      if (arg !== BLANK) {
+        sawMeaningful = true;
+        if (conf < minConf) minConf = conf;
+      }
     }
-    return { slots: slots, minConf: minConf };
+    return { slots: slots, minConf: sawMeaningful ? minConf : minAll };
   }
 
   root.Decode = {

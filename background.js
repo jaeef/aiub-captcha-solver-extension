@@ -2,11 +2,14 @@
 // content.js -> {SOLVE} -> background ensures offscreen -> {SOLVE_OFFSCREEN} -> reply.
 
 const OFFSCREEN_PATH = "offscreen.html";
-const SOLVE_TIMEOUT_MS = 30000; // upper bound for a cold first solve (WASM + ~53MB model load)
+const SOLVE_TIMEOUT_MS = 60000; // upper bound for a cold first solve (WASM + ~168MB model load).
+                                // Raised from 30s: the retrained fp32 model is ~168MB, so a
+                                // cold parse/load on a low-end machine can exceed 30s and time out
+                                // the very first solve.
 const OFFSCREEN_SEND_RETRIES = 5; // listener may not be ready right after create
 
 // The offscreen document is created on first solve and intentionally kept alive for the
-// browser session: it holds the loaded ONNX model (~53MB) in memory so later solves skip the
+// browser session: it holds the loaded ONNX model (~168MB) in memory so later solves skip the
 // multi-second model/WASM load. Deliberate memory-for-latency trade. Transient timeouts on
 // the cold load are retried by content.js, so a slow first load no longer skips the captcha.
 let creating = null; // shared promise; de-dupes concurrent createDocument calls
@@ -32,8 +35,8 @@ function ensureOffscreen() {
     try {
       await chrome.offscreen.createDocument({
         url: OFFSCREEN_PATH,
-        reasons: ["BLOBS"], // process captcha image bytes with WASM (OpenCV + ORT)
-        justification: "Run the captcha OCR model (OpenCV.js + ONNX Runtime) off the page.",
+        reasons: ["BLOBS"], // process captcha image bytes with WASM (ONNX Runtime)
+        justification: "Run the captcha OCR model (ONNX Runtime, WASM) off the page.",
       });
     } catch (e) {
       if (!String(e).includes("Only a single offscreen")) throw e;
