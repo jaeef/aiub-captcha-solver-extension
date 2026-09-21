@@ -158,41 +158,22 @@ function isUnsafeToClick(el) {
   return false;
 }
 
-// Locate the "new captcha" control. Prefer the explicit selector. The heuristic
-// fallback is deliberately conservative: it only accepts a refresh-looking element
-// that lives inside the captcha container (so it can't be a page-level submit/nav),
-// and never one that could submit the form.
-// Common explicit selectors tried before the heuristic. All still pass isUnsafeToClick,
-// so none of these can be a form-submit even if a guess is wrong.
-const REFRESH_GUESSES = [
+// Locate the "new captcha" refresh control safely.
+const REFRESH_SELECTORS = [
   "#RefreshCaptcha", "#refreshCaptcha", "#btnRefreshCaptcha", "#reloadCaptcha",
   "a.captcha-refresh", ".captcha-refresh", ".captcha-reload",
-  "[title*='refresh' i]", "[aria-label*='refresh' i]", "[title*='reload' i]",
+  "[title*='refresh' i]", "[aria-label*='refresh' i]",
 ];
 function findRefresh() {
-  if (SEL.captchaRefresh) {
-    const e = $(SEL.captchaRefresh);
-    if (e && !isUnsafeToClick(e)) return e;
-    return null; // configured selector is authoritative; don't fall back past it
-  }
-  // Try common explicit refresh selectors first.
-  for (const sel of REFRESH_GUESSES) {
-    let e = null;
-    try { e = $(sel); } catch (_) { /* invalid selector -> skip */ }
-    if (e && !isUnsafeToClick(e)) return e;
-  }
-  const box = $(SEL.captchaContainer);
-  if (!box) return null; // no captcha scope -> refuse to guess page-wide
-  const cands = box.querySelectorAll('a, img, button, i, span, svg, [onclick], [role="button"]');
-  for (const el of cands) {
-    if (el.id === "CaptchaImage") continue; // that's the image itself
-    if (isUnsafeToClick(el)) continue;
-    // getAttribute('class') (not el.className) so SVG's SVGAnimatedString still reads as text.
-    const hint = (el.id + " " + (el.getAttribute("class") || "") + " " + (el.getAttribute("onclick") || "") +
-      " " + (el.getAttribute("href") || "") + " " + (el.getAttribute("title") || "") +
-      " " + (el.getAttribute("aria-label") || "") + " " + (el.getAttribute("alt") || "") +
-      " " + (el.getAttribute("src") || "")).toLowerCase();
-    if (/refresh|reload|renew|regenerat|new\s*captcha|fa-(sync|refresh|redo|rotate)|bi-arrow|glyphicon-refresh/.test(hint)) return el;
+  const target = SEL.captchaRefresh ? $(SEL.captchaRefresh) : null;
+  if (target && !isUnsafeToClick(target)) return target;
+  if (SEL.captchaRefresh) return null;
+
+  for (const sel of REFRESH_SELECTORS) {
+    try {
+      const e = $(sel);
+      if (e && !isUnsafeToClick(e)) return e;
+    } catch (_) {}
   }
   return null;
 }

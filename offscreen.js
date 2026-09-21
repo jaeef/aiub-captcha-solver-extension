@@ -2,10 +2,7 @@
 // Receives SOLVE_OFFSCREEN messages from background, returns the answer.
 
 function b64ToUint8(b64) {
-  var bin = atob(b64);
-  var out = new Uint8Array(bin.length);
-  for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
+  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
 
 // Guard (L1): if any solver script failed to load, self.Solver is undefined. Detect it, name
