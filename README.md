@@ -75,12 +75,17 @@ content script  → types the answer into the captcha field
   loads, and the extension re-solves — it's not perfect, just much faster than doing the math yourself.
 - Negative results and division captchas are never filled (the portal doesn't use division).
 
-## Privacy
+## Privacy Policy
 
-- **No data collected.** No credentials are read into storage or sent anywhere.
-- Local storage holds only: your toggle settings, the last solve status (for the popup), and
-  auto-submit timestamps (to enforce the rate cap).
-- The only external link is the popup's Feedback button (a Google Form), opened only when you click it.
+AIUB Captcha Auto-Solver does not collect, store, or transmit any personal data. All captcha recognition runs locally inside your browser. No information — including your login credentials — is ever sent to any server.
+
+- **No data collected:** No credentials or personal identifiers are read, saved, or transmitted.
+- **Local execution only:** Captcha image processing and ONNX neural network inference run 100% on your device.
+- **Local storage only:** Browser local storage is used strictly to retain:
+  - Your on/off toggle preferences (solver enabled, auto-submit enabled).
+  - The last solve status message displayed in the toolbar popup.
+  - Auto-submit timestamps strictly used to enforce rate-limiting.
+- **Third parties:** Nothing is shared with the developer or any third party. The only external link is the optional Feedback button in the popup (a Google Form), which only opens if you explicitly click it.
 
 ## For developers
 
