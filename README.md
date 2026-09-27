@@ -54,9 +54,9 @@ content script  → types the answer into the captcha field
    `manifest.json`).
 3. Same as Chrome: open the portal login, blur the username field, captcha fills itself.
 
-> **First solve is slow.** The model is ~168 MB and loads on your first captcha; a cold load on a
-> low-end machine can take up to ~60 s (the extension retries automatically). Later solves reuse the
-> loaded model and are fast.
+> **First solve note:** The model initializes into WebAssembly memory on your first captcha
+> (taking ~5–15 s on cold start depending on hardware). Later solves reuse the active session
+> and are near-instantaneous.
 
 ## Usage (toolbar popup)
 
@@ -101,7 +101,7 @@ solver/
   decode.js            pure-JS decode + argmax/softmax (14 classes: 0-9, +, -, *, blank)
   preprocess.js        pure-JS port of the training preprocess (grayscale → Otsu → denoise → resize)
   solver.js            loads models/captcha.onnx via ONNX Runtime Web, solve(pngBytes)
-models/captcha.onnx    the trained captcha model (~168 MB, fp32)
+models/captcha.onnx    the trained captcha model (optimized FP16, ~80 MB uncompressed; ~46 MB in store zip)
 vendor/                bundled ONNX Runtime Web (ort.min.js + wasm binaries), no CDN
 ```
 
@@ -110,14 +110,14 @@ vendor/                bundled ONNX Runtime Web (ort.min.js + wasm binaries), no
   guarded across reloads so a wrong-answer loop can't lock your account.
 - **Chrome vs Firefox:** Chrome runs the solver in an offscreen document (kept alive across solves);
   Firefox runs it in the background event page, which may unload after idle — so the first solve after
-  a pause reloads the model and is slower.
+  a pause reloads the model and is slightly slower.
 
 ## Troubleshooting
 
 | Symptom | Fix |
 |---|---|
 | Captcha not auto-filling | Open the portal, focus then blur the username field to reveal the captcha; check the popup status/badge for a reason. |
-| First solve very slow | Expected — the ~168 MB model is loading. Chrome may take up to ~60 s; Firefox up to ~60 s on cold start. |
+| First solve takes a few seconds | Expected — the neural net is initializing in WebAssembly memory on first run. Later solves reuse the active session and are fast. |
 | Badge shows "solving…" forever | Refresh the page and try again; report it if it repeats. |
 | Nothing happens after a portal redesign | The extension uses fixed element IDs (`#CaptchaImage`, `#CaptchaInputText`). If AIUB changes them, solving stops — report it. |
 | Incognito / private window | Extension needs to be enabled for incognito in `chrome://extensions` (or the Add-ons settings in Firefox). |
