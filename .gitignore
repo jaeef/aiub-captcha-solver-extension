@@ -1,30 +1,13 @@
-# ── Local Claude / editor state ──
-.claude/
-
-# ── Build output (regenerable store package) ──
 dist/
-
-# ── Python caches ──
 __pycache__/
 *.pyc
-
-# ── Local-only dev material — NEVER published ──
-# Training/reference code, model weights (.pt), the labeled captcha dataset (ToS/optics),
-# the Selenium reference bot, portal notes, and the local build helper.
 reference-python/
 tools/
 PORTAL_REFERENCE.md
 STORE_LISTING.md
 BUILD.md
 build.sh
-
-# ── Internal dev writeups (kept local; the public README.md ships instead) ──
 HANDOFF.md
 WORKREMAIN.md
-
-# ── Unused / superseded model ──
-models/*.int8.onnx
-
-
-# ── Trained model weights (168MB; > GitHub 100MB limit). Ships via dist/ zips + store. ──
-models/captcha.onnx
+reportR_1.md
+models/
