@@ -41,7 +41,7 @@ Logging into the AIUB student portal ([portal.aiub.edu](https://portal.aiub.edu)
 
 ---
 
-## User Guide: Using on portal.aiub.edu
+## User Guide: Using on [AIUB portal](https://portal.aiub.edu).
 
 Once installed, the extension works automatically on the portal:
 
@@ -102,10 +102,31 @@ graph LR
 
 ## Privacy Policy
 
-- **No Remote Servers:** The extension does not connect to any external server or API.
-- **No Credential Access:** Passwords and usernames are never read, stored, or transmitted.
-- **Local Storage Only:** Local browser storage is used exclusively to save toggle preferences and rate-limit counters.
-- **No Telemetry:** No analytics, tracking scripts, or error loggers are included.
+**Effective Date:** September 2026  
+**Extension:** AIUB Captcha Auto-Solver  
+
+This Privacy Policy explains how **AIUB Captcha Auto-Solver** handles user data. Your privacy is paramount: the extension operates with a strict zero-data-collection architecture.
+
+### 1. Data Collection & Processing
+* **Zero Personal Data Collection:** The extension does not collect, record, log, or sell any personal data, student identities, browsing history, or behavioral metrics.
+* **Authentication Credentials:** Student IDs and passwords are typed directly by you. The extension never accesses, reads, logs, stores, or transmits your credentials. For the optional auto-submit feature, the script only performs a local check verifying that credential fields are non-empty before triggering form submission.
+* **Captcha Image Processing:** Captcha image extraction and recognition occur entirely on-device inside your browser using bundled WebAssembly (ONNX Runtime Web). No images or arithmetic equations are ever sent to remote servers or third-party APIs.
+
+### 2. Browser Storage (`chrome.storage.local`)
+The extension utilizes local client-side browser storage exclusively to persist:
+* Your on/off toggle preferences (`enabled` and `autoSubmit`).
+* The status of the most recent captcha solve (displayed in the toolbar popup).
+* Timestamp logs for the rolling auto-submit rate limiter (to prevent automated form spam and protect against portal account lockouts).
+
+Data stored in `chrome.storage.local` remains strictly on your device and is never synchronized, uploaded, or shared.
+
+### 3. Permissions & Network Activity
+* **`host_permissions` (`https://portal.aiub.edu/*`):** Required exclusively to detect the math captcha and input the calculated answer on the AIUB portal login page. The extension has zero access to any other website or domain.
+* **`offscreen` / Background:** Used to isolate the neural network's WebAssembly execution off the main UI thread.
+* **No Remote Network Calls:** The extension makes zero external HTTP/HTTPS requests, carries no third-party analytics or telemetry trackers, and contains no remote code execution.
+
+### 4. Contact
+For questions, support, or bug reports regarding this extension, please reach out via the [GitHub Issues](https://github.com/jaeef/aiub-captcha-solver-extension/issues) or the feedback form in the extension popup.
 
 ---
 

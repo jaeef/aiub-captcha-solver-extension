@@ -5,9 +5,8 @@ reference-python/
 tools/
 PORTAL_REFERENCE.md
 STORE_LISTING.md
+CHROME_LISTING.md
 BUILD.md
 build.sh
 HANDOFF.md
-WORKREMAIN.md
-reportR_1.md
 models/
