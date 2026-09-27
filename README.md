@@ -1,129 +1,120 @@
-# AIUB Captcha Auto-Solver
+<div align="center">
+  <img src="icons/128.png" alt="AIUB Captcha Auto-Solver Logo" width="96" height="96" />
+  <h1>AIUB Portal Captcha Auto-Solver</h1>
+  <p><strong>On-device neural network captcha solver for the AIUB Student Portal.</strong></p>
 
-A Manifest V3 browser extension that auto-solves the **AIUB student portal** login captcha
-(a small math equation, e.g. `76-42=?`) using a neural net that runs **entirely inside your
-browser** — no server, no remote inference, no network calls to solve.
+  <p>
+    <img src="https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript" />
+    <img src="https://img.shields.io/badge/WebAssembly-SIMD-654FF0?style=for-the-badge&logo=webassembly&logoColor=white" alt="WebAssembly" />
+    <img src="https://img.shields.io/badge/ONNX_Runtime-Web-005CED?style=for-the-badge&logo=onnx&logoColor=white" alt="ONNX Runtime Web" />
+    <img src="https://img.shields.io/badge/Google_Chrome-MV3-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Google Chrome" />
+    <img src="https://img.shields.io/badge/Firefox_AMO-Compatible-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white" alt="Mozilla Firefox" />
+  </p>
 
-> You log in yourself. The extension only reads the captcha image and types the answer into the
-> captcha box. It never sees, stores, or transmits your ID or password.
+  <p>
+    <img src="https://img.shields.io/badge/Privacy-100%25_On--Device-success?style=flat-square" alt="100% On-Device" />
+    <img src="https://img.shields.io/badge/Credentials-Never_Collected-blueviolet?style=flat-square" alt="Credentials Never Collected" />
+  </p>
+</div>
 
-## Features
+---
 
-- Auto-solves the math captcha and fills the answer box — no typing.
-- Confident answers are typed directly; uncertain ones auto-refresh to an easier captcha (max 5 rerolls).
-- Opt-in auto-submit: after a high-confidence fill it clicks Login once your ID and password are typed
-  (default OFF, rate-capped to protect your account).
-- Live status in the popup + an on-page badge while solving.
-- Works on Chromium (Chrome, Edge, Brave, Opera, Vivaldi) and Firefox.
+## Overview
 
-## How it works
+### The Problem
+Logging into the AIUB student portal ([portal.aiub.edu](https://portal.aiub.edu)) requires students to solve a distorted arithmetic captcha (such as `76 - 42 = ?`) on every login attempt. For students checking schedules, grades, and attendance throughout the day, deciphering noisy numbers and doing manual math creates repetitive friction and unnecessary login delays.
 
+### The Solution
+**AIUB Captcha Auto-Solver** automates the math captcha directly inside the browser. It reads the captcha canvas, predicts the equation using an on-device neural network, and fills the solution into the answer field in milliseconds.
+
+> [!NOTE]
+> The extension only reads the captcha image and fills the math result. It **never** reads, stores, or transmits Student IDs or passwords.
+
+### Features
+
+- **On-Device Solving:** Extracts the captcha directly from the canvas element, evaluates the arithmetic equation, and fills the answer field.
+- **Zero Credential Access:** The extension never inspects or logs user credentials. You type your ID and password yourself.
+- **Automatic Reroll:** Automatically clicks refresh for an easier captcha if recognition confidence is low (up to 5 attempts).
+- **Optional Auto-Submit:** An opt-in toggle to click Login once credentials are typed, protected by a rolling rate cap to avoid account lockouts.
+- **Status Indicator:** On-page badge showing solving state, alongside a popup for settings.
+- **No External Servers:** Completely offline operation with no telemetry, third-party analytics, or external API dependencies.
+
+---
+
+## User Guide: Using on portal.aiub.edu
+
+Once installed, the extension works automatically on the portal:
+
+1. **Open the Portal:** Go to [portal.aiub.edu](https://portal.aiub.edu).
+2. **Enter Student ID:** Type your Student ID into the username box and click outside (or press Tab). The portal will display the math captcha image.
+3. **Automatic Solve:** The extension instantly reads the captcha, solves the arithmetic expression, and fills the answer into the box. An on-page status badge will indicate `Solved`.
+4. **Log In:** Type your password and click **Log In**.
+5. **Optional One-Click Login:** Click the extension icon in your browser toolbar to open the popup and enable **"Also click submit"**. When enabled, the extension will automatically click Log In after filling the captcha once both your ID and password fields are filled.
+
+---
+
+## Tech Stack & Architecture
+
+| Component | Technology | Description |
+|---|---|---|
+| Extension Standard | Manifest V3 (MV3) | Supported across Chromium and Firefox |
+| Execution Runtime | ONNX Runtime Web | WebAssembly SIMD execution provider |
+| Image Processing | HTML5 Canvas Pipeline | Client-side pixel parsing and normalization |
+| Chromium Worker | `chrome.offscreen` API | Isolated WebAssembly execution without blocking the main page |
+| Firefox Worker | Background Event Scripts | Native background inference without requiring offscreen documents |
+
+---
+
+## How It Works
+
+```mermaid
+graph LR
+    A[Portal Login Page] -->|Extract Canvas Pixels| B[Content Script]
+    B -->|Image Data| C[Background Worker]
+    C -->|Offscreen Channel| D[WASM Runtime]
+    D -->|Process & Solve| E[On-Device Model]
+    E -->|Answer & Confidence| B
+    B -->|Fill Answer| F[Captcha Input Field]
 ```
-content script  → reads the captcha image pixels (canvas)
-      ↓
-background (service worker) → hands the image to an offscreen document
-      ↓
-offscreen solver → pure-JS preprocess → ONNX model (ONNX Runtime Web, bundled) → answer
-      ↓
-content script  → types the answer into the captcha field
-```
 
-- **On-device only.** The model (`models/captcha.onnx`) and ONNX Runtime (`vendor/`) are bundled;
-  no CDN, no remote inference.
-- **CSP-safe.** No `eval`, no inline scripts — image preprocessing is a pure-JS reimplementation
-  of the training pipeline (no OpenCV, which would need `unsafe-eval`).
-- **Your data stays local.** The captcha image is processed in-memory inside the extension and
-  never leaves your machine.
+1. **Detection:** When the portal renders the captcha, the content script extracts the pixel data directly from the DOM image element.
+2. **Preprocessing:** The image is normalized for local evaluation.
+3. **Inference:** The on-device engine resolves the arithmetic expression inside the browser.
+4. **Resolution:** The calculated solution is automatically typed into the captcha input box.
+5. **Confidence Gating:** If the prediction confidence falls below 0.90, the extension clicks the refresh control for a new image instead of submitting an uncertain answer.
 
-## Install
+---
 
-### Chrome / Chromium
+## Installation
 
-1. Open `chrome://extensions` and enable **Developer mode**.
-2. Click **Load unpacked** and select `dist/aiub-captcha-solver-chrome` (the pre-built folder),
-   or the repo root if you prefer to run from source.
-3. Open the AIUB portal login page, focus then blur the username field so the captcha appears.
-4. The captcha box fills automatically. Type your own ID/password and log in.
+1. Download the latest release from [Releases](https://github.com/jaeef/aiub-captcha-solver-extension/releases):
+   - `aiub-captcha-solver-chrome.zip` (for Chrome, Edge, Brave, Opera)
+   - `aiub-captcha-solver-firefox.zip` (for Firefox)
+2. Extract the archive to a local folder.
+3. **Chromium (Chrome, Edge, Brave):**
+   - Open `chrome://extensions` and enable **Developer mode**.
+   - Click **Load unpacked** and select the extracted folder.
+4. **Firefox:**
+   - Open `about:debugging#/runtime/this-firefox`.
+   - Click **Load Temporary Add-on** and select `manifest.json` from the extracted folder.
 
-### Firefox
-
-1. Build the Firefox package — run `bash build.sh`, which produces
-   `dist/aiub-captcha-solver-firefox.zip`. No bash? Copy `models/captcha.onnx` into
-   `dist/aiub-captcha-solver-firefox/models/` and re-zip the folder (forward-slash entries).
-2. Open `about:debugging` → **This Firefox** → **Load Temporary Add-on** → pick the zip (or its
-   `manifest.json`).
-3. Same as Chrome: open the portal login, blur the username field, captcha fills itself.
-
-> **First solve note:** The model initializes into WebAssembly memory on your first captcha
-> (taking ~5–15 s on cold start depending on hardware). Later solves reuse the active session
-> and are near-instantaneous.
-
-## Usage (toolbar popup)
-
-- **Do my math for me** — auto-solve + fill the captcha (default ON).
-- **Also click submit** — after a high-confidence fill, click Login, but only once your ID and
-  password are already typed, behind a strict confidence gate and a reload-proof rate cap
-  (default OFF, opt-in).
-- **Feedback / Report bug** — opens a short Google Form in a new tab (your choice — nothing is
-  submitted without you).
-
-## Accuracy notes
-
-- Answers are gated on the model's confidence. Below a hard floor the answer is discarded; below a
-  higher bar the extension refreshes to a new captcha instead of typing a shaky answer.
-- **Wrong answers are possible.** If one slips through, the portal rejects login, a fresh captcha
-  loads, and the extension re-solves — it's not perfect, just much faster than doing the math yourself.
-- Negative results and division captchas are never filled (the portal doesn't use division).
+---
 
 ## Privacy Policy
 
-AIUB Captcha Auto-Solver does not collect, store, or transmit any personal data. All captcha recognition runs locally inside your browser. No information — including your login credentials — is ever sent to any server.
+- **No Remote Servers:** The extension does not connect to any external server or API.
+- **No Credential Access:** Passwords and usernames are never read, stored, or transmitted.
+- **Local Storage Only:** Local browser storage is used exclusively to save toggle preferences and rate-limit counters.
+- **No Telemetry:** No analytics, tracking scripts, or error loggers are included.
 
-- **No data collected:** No credentials or personal identifiers are read, saved, or transmitted.
-- **Local execution only:** Captcha image processing and ONNX neural network inference run 100% on your device.
-- **Local storage only:** Browser local storage is used strictly to retain:
-  - Your on/off toggle preferences (solver enabled, auto-submit enabled).
-  - The last solve status message displayed in the toolbar popup.
-  - Auto-submit timestamps strictly used to enforce rate-limiting.
-- **Third parties:** Nothing is shared with the developer or any third party. The only external link is the optional Feedback button in the popup (a Google Form), which only opens if you explicitly click it.
+---
 
-## For developers
+## License
 
-```
-manifest.json          MV3 manifest (Chrome: storage + offscreen permissions)
-manifest.firefox.json  Firefox manifest (storage only; no chrome.offscreen)
-content.js             runs on portal.aiub.edu — detects the captcha, reads pixels, fills answer
-background.js          Chrome service worker — owns the offscreen document, routes solves
-offscreen.js           Chrome offscreen document — hosts the heavy solver
-background.firefox.js  Firefox event page — runs the solver directly (no offscreen API there)
-popup.html/js          toolbar UI — toggles + last status + feedback link
-solver/
-  decode.js            pure-JS decode + argmax/softmax (14 classes: 0-9, +, -, *, blank)
-  preprocess.js        pure-JS port of the training preprocess (grayscale → Otsu → denoise → resize)
-  solver.js            loads models/captcha.onnx via ONNX Runtime Web, solve(pngBytes)
-models/captcha.onnx    the trained captcha model (optimized FP16, ~80 MB uncompressed; ~46 MB in store zip)
-vendor/                bundled ONNX Runtime Web (ort.min.js + wasm binaries), no CDN
-```
+Copyright (c) 2026 Jaeef. All rights reserved.
 
-- **Confidence gates** live in `content.js`: `MIN_CONF` (discard below), `RETRY_CONF` (reroll below),
-  `AUTOSUBMIT_CONF` (auto-submit only above). Rerolls are capped at 5; auto-submits at 5 per 10 minutes,
-  guarded across reloads so a wrong-answer loop can't lock your account.
-- **Chrome vs Firefox:** Chrome runs the solver in an offscreen document (kept alive across solves);
-  Firefox runs it in the background event page, which may unload after idle — so the first solve after
-  a pause reloads the model and is slightly slower.
-
-## Troubleshooting
-
-| Symptom | Fix |
-|---|---|
-| Captcha not auto-filling | Open the portal, focus then blur the username field to reveal the captcha; check the popup status/badge for a reason. |
-| First solve takes a few seconds | Expected — the neural net is initializing in WebAssembly memory on first run. Later solves reuse the active session and are fast. |
-| Badge shows "solving…" forever | Refresh the page and try again; report it if it repeats. |
-| Nothing happens after a portal redesign | The extension uses fixed element IDs (`#CaptchaImage`, `#CaptchaInputText`). If AIUB changes them, solving stops — report it. |
-| Incognito / private window | Extension needs to be enabled for incognito in `chrome://extensions` (or the Add-ons settings in Firefox). |
-| Doesn't work in Firefox after update | Firefox temp add-ons reset on restart; reload it from `about:debugging`. |
+---
 
 ## Disclaimer
 
-For convenience logging into **your own** AIUB account. Use responsibly and in line with the
-portal's terms.
+This project is an independent tool built for convenience when logging into your own AIUB account. Use responsibly in accordance with the portal's terms of service.
