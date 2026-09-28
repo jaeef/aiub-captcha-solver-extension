@@ -186,10 +186,19 @@ function clickRefresh() {
   return true;
 }
 
+function isContextValid() {
+  return typeof chrome !== "undefined" && !!chrome.runtime && !!chrome.runtime.id;
+}
+
 // One storage round-trip for both toggles (default: enabled ON, autoSubmit OFF).
 async function getSettings() {
-  const v = await chrome.storage.local.get(["enabled", "autoSubmit"]);
-  return { enabled: v.enabled !== false, autoSubmit: v.autoSubmit === true };
+  if (!isContextValid()) return { enabled: false, autoSubmit: false };
+  try {
+    const v = await chrome.storage.local.get(["enabled", "autoSubmit"]);
+    return { enabled: v.enabled !== false, autoSubmit: v.autoSubmit === true };
+  } catch (_) {
+    return { enabled: false, autoSubmit: false };
+  }
 }
 
 // True ONLY on a POSITIVE logged-in signal. This gates the permanent teardown of the
@@ -210,14 +219,19 @@ function loggedIn() {
 // answer, which would otherwise reset an in-memory counter and defeat the lockout guard).
 // Records this submit and returns { allowed, count }.
 async function recordSubmitAllowed() {
+  if (!isContextValid()) return { allowed: false, count: 0 };
   const now = Date.now();
-  const v = await chrome.storage.local.get("autoSubmitLog");
-  const recent = (Array.isArray(v.autoSubmitLog) ? v.autoSubmitLog : [])
-    .filter((t) => typeof t === "number" && now - t < SUBMIT_WINDOW_MS);
-  if (recent.length >= MAX_SUBMITS) return { allowed: false, count: recent.length };
-  recent.push(now);
-  await chrome.storage.local.set({ autoSubmitLog: recent });
-  return { allowed: true, count: recent.length };
+  try {
+    const v = await chrome.storage.local.get("autoSubmitLog");
+    const recent = (Array.isArray(v.autoSubmitLog) ? v.autoSubmitLog : [])
+      .filter((t) => typeof t === "number" && now - t < SUBMIT_WINDOW_MS);
+    if (recent.length >= MAX_SUBMITS) return { allowed: false, count: recent.length };
+    recent.push(now);
+    await chrome.storage.local.set({ autoSubmitLog: recent });
+    return { allowed: true, count: recent.length };
+  } catch (_) {
+    return { allowed: false, count: 0 };
+  }
 }
 
 // True only when the user has already typed BOTH credentials. We never fill or read these
@@ -247,10 +261,14 @@ async function maybeAutoSubmit(autoSubmit, conf) {
 }
 
 function reportStatus(patch) {
-  chrome.storage.local.set({ lastCaptcha: patch });
+  if (!isContextValid()) return;
+  try {
+    chrome.storage.local.set({ lastCaptcha: patch }).catch?.(() => {});
+  } catch (_) {}
 }
 
 async function trySolve() {
+  if (!isContextValid()) { stopWatching(); return; }
   if (busy) return;
   // Once logged in, the captcha is gone for this session -> stop polling/observing (M3).
   if (loggedIn()) { stopWatching(); return; }
@@ -379,8 +397,12 @@ function stopWatching() {
 }
 
 // Fresh page load: drop any stale status so the popup doesn't show a previous session's result.
-chrome.storage.local.remove("lastCaptcha");
-// A logged-in page means the last login worked -> clear the auto-submit throttle.
-if (loggedIn()) chrome.storage.local.remove("autoSubmitLog");
+if (isContextValid()) {
+  try {
+    chrome.storage.local.remove("lastCaptcha").catch?.(() => {});
+    // A logged-in page means the last login worked -> clear the auto-submit throttle.
+    if (loggedIn()) chrome.storage.local.remove("autoSubmitLog").catch?.(() => {});
+  } catch (_) {}
+}
 
 trySolve();

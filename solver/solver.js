@@ -22,7 +22,10 @@
       root.ort.env.wasm.numThreads = 1;
       root.ort.env.wasm.proxy = false;
       // Point ort at the bundled wasm binaries (no CDN — CSP-safe).
-      root.ort.env.wasm.wasmPaths = chrome.runtime.getURL("vendor/");
+      root.ort.env.wasm.wasmPaths = {
+        mjs: chrome.runtime.getURL("vendor/ort-wasm-simd-threaded.mjs"),
+        wasm: chrome.runtime.getURL("vendor/ort-wasm-simd-threaded.wasm")
+      };
       _session = await root.ort.InferenceSession.create(MODEL_URL, {
         executionProviders: ["wasm"],
         graphOptimizationLevel: "all",

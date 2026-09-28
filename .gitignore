@@ -4,9 +4,10 @@ __pycache__/
 reference-python/
 tools/
 PORTAL_REFERENCE.md
-STORE_LISTING.md
-CHROME_LISTING.md
+promo/
 BUILD.md
-build.sh
+build*.sh
+build*.ps1
 HANDOFF.md
 models/
+*LISTING*.md
