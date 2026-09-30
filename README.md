@@ -3,17 +3,26 @@
   <h1>AIUB Portal Captcha Auto-Solver</h1>
   <p><strong>On-device neural network captcha solver for the AIUB Student Portal.</strong></p>
 
+  <!-- Primary CTA Button -->
   <p>
-    <img src="https://img.shields.io/badge/JavaScript-ES6+-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript" />
-    <img src="https://img.shields.io/badge/WebAssembly-SIMD-654FF0?style=for-the-badge&logo=webassembly&logoColor=white" alt="WebAssembly" />
-    <img src="https://img.shields.io/badge/ONNX_Runtime-Web-005CED?style=for-the-badge&logo=onnx&logoColor=white" alt="ONNX Runtime Web" />
-    <img src="https://img.shields.io/badge/Google_Chrome-MV3-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Google Chrome" />
-    <img src="https://img.shields.io/badge/Firefox_AMO-Compatible-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white" alt="Mozilla Firefox" />
+    <a href="https://chrome.google.com/webstore/detail/iidomcjgemdcaipoghgndiiameienamc" target="_blank">
+      <img src="https://img.shields.io/badge/Available_on-Chrome_Web_Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" height="34" alt="Available in the Chrome Web Store" />
+    </a>
   </p>
 
+  <!-- Key Value Props -->
   <p>
     <img src="https://img.shields.io/badge/Privacy-100%25_On--Device-success?style=flat-square" alt="100% On-Device" />
     <img src="https://img.shields.io/badge/Credentials-Never_Collected-blueviolet?style=flat-square" alt="Credentials Never Collected" />
+    <img src="https://img.shields.io/badge/Latency-%3C350ms-brightgreen?style=flat-square" alt="Latency < 350ms" />
+  </p>
+
+  <!-- Tech Stack -->
+  <p>
+    <img src="https://img.shields.io/badge/Manifest_V3-Chrome-4285F4?style=flat-square&logo=googlechrome&logoColor=white" alt="Manifest V3" />
+    <img src="https://img.shields.io/badge/WebAssembly-SIMD-654FF0?style=flat-square&logo=webassembly&logoColor=white" alt="WebAssembly" />
+    <img src="https://img.shields.io/badge/ONNX_Runtime-Web-005CED?style=flat-square&logo=onnx&logoColor=white" alt="ONNX Runtime Web" />
+    <img src="https://img.shields.io/badge/Firefox_AMO-Review_Pending-FF7139?style=flat-square&logo=firefoxbrowser&logoColor=white" alt="Mozilla Firefox" />
   </p>
 </div>
 
@@ -22,7 +31,7 @@
 ## Overview
 
 ### The Problem
-Logging into the AIUB student portal ([portal.aiub.edu](https://portal.aiub.edu)) requires students to solve a distorted arithmetic captcha (such as `76 - 42 = ?`) on every login attempt. For students checking schedules, grades, and attendance throughout the day, deciphering noisy numbers and doing manual math creates repetitive friction and unnecessary login delays.
+Logging into the AIUB student portal requires students to solve a distorted arithmetic captcha (such as `76 - 42 = ?`) on every login attempt. For students checking schedules, grades, and attendance throughout the day, deciphering noisy numbers and doing manual math creates repetitive friction and unnecessary login delays.
 
 ### The Solution
 **AIUB Captcha Auto-Solver** automates the math captcha directly inside the browser. It reads the captcha canvas, predicts the equation using an on-device neural network, and fills the solution into the answer field in milliseconds.
@@ -87,16 +96,34 @@ graph LR
 
 ## Installation
 
-1. Download the latest release from [Releases](https://github.com/jaeef/aiub-captcha-solver-extension/releases):
-   - `aiub-captcha-solver-chrome.zip` (for Chrome, Edge, Brave, Opera)
-   - `aiub-captcha-solver-firefox.zip` (for Firefox)
-2. Extract the archive to a local folder.
-3. **Chromium (Chrome, Edge, Brave):**
-   - Open `chrome://extensions` and enable **Developer mode**.
-   - Click **Load unpacked** and select the extracted folder.
-4. **Firefox:**
-   - Open `about:debugging#/runtime/this-firefox`.
-   - Click **Load Temporary Add-on** and select `manifest.json` from the extracted folder.
+### Method 1: Chrome Web Store (Recommended for Chrome, Brave, Edge, Opera)
+
+Install directly from the Chrome Web Store for 1-click installation and automatic future updates:
+
+<div align="center">
+  <a href="https://chrome.google.com/webstore/detail/iidomcjgemdcaipoghgndiiameienamc" target="_blank">
+    <img src="https://img.shields.io/badge/Chrome_Web_Store-Add_to_Chrome-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Add to Chrome" />
+  </a>
+  <p><a href="https://chrome.google.com/webstore/detail/iidomcjgemdcaipoghgndiiameienamc"><strong>Direct Link: AIUB Captcha Auto-Solver on Chrome Web Store</strong></a></p>
+</div>
+
+---
+
+### Method 2: Firefox Installation
+> ⏳ *Status: The official Firefox Add-on listing is currently in review by Mozilla.*
+
+To use in Firefox right now via temporary add-on:
+1. Download `aiub-captcha-solver-firefox.zip` from [Releases](https://github.com/jaeef/aiub-captcha-solver-extension/releases).
+2. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`.
+3. Click **Load Temporary Add-on...** and select the downloaded zip file (or its extracted `manifest.json`).
+
+---
+
+### Method 3: Manual Developer Sideloading (Chromium)
+If you prefer running unpacked code:
+1. Download `aiub-captcha-solver-chrome.zip` from [Releases](https://github.com/jaeef/aiub-captcha-solver-extension/releases) and extract it.
+2. Open `chrome://extensions` and enable **Developer mode** (top right).
+3. Click **Load unpacked** and select the extracted folder.
 
 ---
 
