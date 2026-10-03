@@ -3,10 +3,14 @@
   <h1>AIUB Portal Captcha Auto-Solver</h1>
   <p><strong>On-device neural network captcha solver for the AIUB Student Portal.</strong></p>
 
-  <!-- Primary CTA Button -->
+  <!-- Primary Store CTA Buttons -->
   <p>
     <a href="https://chrome.google.com/webstore/detail/iidomcjgemdcaipoghgndiiameienamc" target="_blank">
       <img src="https://img.shields.io/badge/Available_on-Chrome_Web_Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" height="34" alt="Available in the Chrome Web Store" />
+    </a>
+    &nbsp;&nbsp;
+    <a href="https://addons.mozilla.org/firefox/addon/aiub-captcha-auto-solver/" target="_blank">
+      <img src="https://img.shields.io/badge/Available_on-Firefox_Add--ons-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white" height="34" alt="Available on Firefox Add-ons" />
     </a>
   </p>
 
@@ -22,7 +26,7 @@
     <img src="https://img.shields.io/badge/Manifest_V3-Chrome-4285F4?style=flat-square&logo=googlechrome&logoColor=white" alt="Manifest V3" />
     <img src="https://img.shields.io/badge/WebAssembly-SIMD-654FF0?style=flat-square&logo=webassembly&logoColor=white" alt="WebAssembly" />
     <img src="https://img.shields.io/badge/ONNX_Runtime-Web-005CED?style=flat-square&logo=onnx&logoColor=white" alt="ONNX Runtime Web" />
-    <img src="https://img.shields.io/badge/Firefox_AMO-Review_Pending-FF7139?style=flat-square&logo=firefoxbrowser&logoColor=white" alt="Mozilla Firefox" />
+    <img src="https://img.shields.io/badge/Firefox_AMO-Official_Add--on-FF7139?style=flat-square&logo=firefoxbrowser&logoColor=white" alt="Mozilla Firefox" />
   </p>
 </div>
 
@@ -96,34 +100,33 @@ graph LR
 
 ## Installation
 
-### Method 1: Chrome Web Store (Recommended for Chrome, Brave, Edge, Opera)
+### 1. Official Browser Stores (Recommended)
 
-Install directly from the Chrome Web Store for 1-click installation and automatic future updates:
+Install directly from your browser's official extension store for 1-click installation and automatic background updates:
 
 <div align="center">
-  <a href="https://chrome.google.com/webstore/detail/iidomcjgemdcaipoghgndiiameienamc" target="_blank">
-    <img src="https://img.shields.io/badge/Chrome_Web_Store-Add_to_Chrome-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Add to Chrome" />
-  </a>
-  <p><a href="https://chrome.google.com/webstore/detail/iidomcjgemdcaipoghgndiiameienamc"><strong>Direct Link: AIUB Captcha Auto-Solver on Chrome Web Store</strong></a></p>
+  <p>
+    <a href="https://chrome.google.com/webstore/detail/iidomcjgemdcaipoghgndiiameienamc" target="_blank">
+      <img src="https://img.shields.io/badge/Chrome_Web_Store-Add_to_Chrome-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" height="36" alt="Add to Chrome" />
+    </a>
+    &nbsp;&nbsp;&nbsp;&nbsp;
+    <a href="https://addons.mozilla.org/firefox/addon/aiub-captcha-auto-solver/" target="_blank">
+      <img src="https://img.shields.io/badge/Firefox_Add--ons-Add_to_Firefox-FF7139?style=for-the-badge&logo=firefoxbrowser&logoColor=white" height="36" alt="Add to Firefox" />
+    </a>
+  </p>
+  <p>
+    <a href="https://chrome.google.com/webstore/detail/iidomcjgemdcaipoghgndiiameienamc"><strong>Chrome Web Store</strong></a> (Chrome, Brave, Edge, Opera)
+    &nbsp;•&nbsp;
+    <a href="https://addons.mozilla.org/firefox/addon/aiub-captcha-auto-solver/"><strong>Firefox Add-ons</strong></a> (Firefox Desktop & Android)
+  </p>
 </div>
 
 ---
 
-### Method 2: Firefox Installation
-> ⏳ *Status: The official Firefox Add-on listing is currently in review by Mozilla.*
-
-To use in Firefox right now via temporary add-on:
-1. Download `aiub-captcha-solver-firefox.zip` from [Releases](https://github.com/jaeef/aiub-captcha-solver-extension/releases).
-2. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`.
-3. Click **Load Temporary Add-on...** and select the downloaded zip file (or its extracted `manifest.json`).
-
----
-
-### Method 3: Manual Developer Sideloading (Chromium)
-If you prefer running unpacked code:
-1. Download `aiub-captcha-solver-chrome.zip` from [Releases](https://github.com/jaeef/aiub-captcha-solver-extension/releases) and extract it.
-2. Open `chrome://extensions` and enable **Developer mode** (top right).
-3. Click **Load unpacked** and select the extracted folder.
+### 2. Manual Developer Sideloading (Offline / Source Builds)
+If you prefer running unpacked code or testing local builds:
+- **Chromium (Chrome, Edge, Brave):** Download `aiub-captcha-solver-chrome.zip` from [Releases](https://github.com/jaeef/aiub-captcha-solver-extension/releases), extract it, open `chrome://extensions`, enable **Developer mode**, and click **Load unpacked**.
+- **Firefox:** Download `aiub-captcha-solver-firefox.zip` from [Releases](https://github.com/jaeef/aiub-captcha-solver-extension/releases), open `about:debugging#/runtime/this-firefox`, and click **Load Temporary Add-on...**.
 
 ---
 
